@@ -1,25 +1,33 @@
-const express=require('express')
-const http=require('http')
-const {Server}=require('socket.io')
-const bodyParser=require('body-parser')
-const app=express()
+// server.js
+const express = require('express');
+const axios = require('axios');
 const cors=require('cors')
-app.use(bodyParser.json());
-require('dotenv').config()
-const PORT=process.env.PORT||4000;
-app.use(express.json())
+const app = express();
 app.use(cors())
-app.use(express.urlencoded({extended:true}))
-const server=http.createServer(app)
-const io=new Server(server)
-io.on('connection',(socket)=>{
-    console.log("Connected ",socket.id)
-    socket.on('message',(data)=>{
-        console.log("Data")
-        console.log(data)
-    })
-})
-server.listen(PORT,()=>{
-    console.log(`Server Started At PORT ${PORT}`)
+app.use(express.json())
+const port = 8000;
 
+app.get('/' ,(req,res)=>{
+    return res.status(200).json({'success':true,'message':"Welcome To Api"})
 })
+
+app.get('/download', async (req, res) => {
+  const videoUrl = req.query.url;
+  if (!videoUrl) {
+    return res.status(400).send('No video URL provided');
+  }
+
+  try {
+    const response = await axios.get(videoUrl, {
+      responseType: 'stream',
+    });
+    res.setHeader('Content-Disposition', response.headers['content-disposition'] || 'attachment; filename="video.mp4"');
+    response.data.pipe(res);
+  } catch (error) {
+    res.status(500).send('Failed to download video');
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Proxy server listening at http://localhost:${port}`);
+});
